@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "hybrik"
+version = "0.1.0"
+description = ""
+authors = ["dcaustin33 <dcaustin33@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "^2.4.0"
+torchvision = "^0.19.0"
+opencv-python = "^4.10.0.84"
+pycocotools = "^2.0.8"
+iopath = "^0.1.10"
+fvcore = "^0.1.5.post20221221"
+easydict = "^1.13"
+scipy = "^1.14.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

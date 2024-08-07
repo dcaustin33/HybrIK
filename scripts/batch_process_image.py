@@ -1,4 +1,4 @@
-"""Image demo script."""
+"""Batch Image Processing Demo Script."""
 import argparse
 import os
 
@@ -45,8 +45,6 @@ parser.add_argument('--out-dir',
 opt = parser.parse_args()
 
 
-# cfg_file = 'configs/256x192_adam_lr1e-3-res34_smpl_3d_cam_2x_mix_w_pw3d.yaml'
-# CKPT = './pretrained_w_cam.pth'
 cfg_file = 'configs/256x192_adam_lr1e-3-hrw48_cam_2x_w_pw3d_3dhp.yaml'
 CKPT = './pretrained_models/hybrik_hrnet.pth'
 cfg = update_config(cfg_file)
@@ -95,69 +93,66 @@ smpl_faces = torch.from_numpy(hybrik_model.smpl.faces.astype(np.int32))
 if not os.path.exists(opt.out_dir):
     os.makedirs(opt.out_dir)
 
+# List to hold all image data and results
+batch_images = []
+batch_bboxes = []
+batch_filenames = []
+
+# Load and preprocess images
 for file in tqdm(files):
     if not os.path.isdir(file) and file[-4:] in ['.jpg', '.png']:
-        # is an image
         if file[:4] == 'res_':
             continue
 
-        # process file name
         img_path = os.path.join(opt.img_dir, file)
-        dirname = os.path.dirname(img_path)
-        basename = os.path.basename(img_path)
-
-        # Run Detection
         input_image = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-        det_input = det_transform(input_image) .to(opt.device)
+        det_input = det_transform(input_image).to(opt.device)
         det_output = det_model([det_input])[0]
-
         tight_bbox = get_one_box(det_output)  # xyxy
 
-        # Run HybrIK
-        # bbox: [x1, y1, x2, y2]
-        import pdb; pdb.set_trace()
-        pose_input, bbox, img_center = transformation.test_transform(
-            input_image, tight_bbox)
+        pose_input, bbox, img_center = transformation.test_transform(input_image, tight_bbox)
         pose_input = pose_input.to(opt.device)[None, :, :, :]
-        pose_output = hybrik_model(
-            pose_input, flip_test=True,
-            bboxes=torch.from_numpy(np.array(bbox)).to(pose_input.device).unsqueeze(0).float(),
-            img_center=torch.from_numpy(img_center).to(pose_input.device).unsqueeze(0).float()
-        )
-        # uv_29 = pose_output.pred_uvd_jts.reshape(29, 3)[:, :2]
-        transl = pose_output.transl.detach()
 
-        # Visualization
-        image = input_image.copy()
-        focal = 1000.0
-        bbox_xywh = xyxy2xywh(bbox)
+        batch_images.append(pose_input)
+        batch_bboxes.append((bbox, img_center))
+        batch_filenames.append(file)
 
-        focal = focal / 256 * bbox_xywh[2]
+# Process all images in the batch
+for i in range(len(batch_images)):
+    pose_input = batch_images[i]
+    bbox, img_center = batch_bboxes[i]
+    file = batch_filenames[i]
 
-        vertices = pose_output.pred_vertices.detach()
+    pose_output = hybrik_model(
+        pose_input, flip_test=True,
+        bboxes=torch.from_numpy(np.array(bbox)).to(pose_input.device).unsqueeze(0).float(),
+        img_center=torch.from_numpy(img_center).to(pose_input.device).unsqueeze(0).float()
+    )
 
-        verts_batch = vertices
-        transl_batch = transl
+    transl = pose_output.transl.detach()
+    vertices = pose_output.pred_vertices.detach()
+    verts_batch = vertices
+    transl_batch = transl
 
-        color_batch = render_mesh(
-            vertices=verts_batch, faces=smpl_faces,
-            translation=transl_batch,
-            focal_length=focal, height=image.shape[0], width=image.shape[1])
+    focal = 1000.0 / 256 * xyxy2xywh(bbox)[2]
+    color_batch = render_mesh(
+        vertices=verts_batch, faces=smpl_faces,
+        translation=transl_batch,
+        focal_length=focal, height=input_image.shape[0], width=input_image.shape[1])
 
-        valid_mask_batch = (color_batch[:, :, :, [-1]] > 0)
-        image_vis_batch = color_batch[:, :, :, :3] * valid_mask_batch
-        image_vis_batch = (image_vis_batch * 255).cpu().numpy()
+    valid_mask_batch = (color_batch[:, :, :, [-1]] > 0)
+    image_vis_batch = color_batch[:, :, :, :3] * valid_mask_batch
+    image_vis_batch = (image_vis_batch * 255).cpu().numpy()
 
-        color = image_vis_batch[0]
-        valid_mask = valid_mask_batch[0].cpu().numpy()
-        input_img = image
-        alpha = 0.9
-        image_vis = alpha * color[:, :, :3] * valid_mask + (
-            1 - alpha) * input_img * valid_mask + (1 - valid_mask) * input_img
+    color = image_vis_batch[0]
+    valid_mask = valid_mask_batch[0].cpu().numpy()
+    input_img = input_image
+    alpha = 0.9
+    image_vis = alpha * color[:, :, :3] * valid_mask + (
+        1 - alpha) * input_img * valid_mask + (1 - valid_mask) * input_img
 
-        image_vis = image_vis.astype(np.uint8)
-        image_vis = cv2.cvtColor(image_vis, cv2.COLOR_RGB2BGR)
+    image_vis = image_vis.astype(np.uint8)
+    image_vis = cv2.cvtColor(image_vis, cv2.COLOR_RGB2BGR)
 
-        res_path = os.path.join(opt.out_dir, basename)
-        print(f"Res path: {res_path}. Image path: {img_path}")
-        cv2.imwrite(res_path, image_vis)
+    res_path = os.path.join(opt.out_dir, file)
+    cv2.imwrite(res_path, image_vis)

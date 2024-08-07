@@ -108,3 +108,7 @@ data
 data/
 exp
 model_files
+
+*pth
+*npz
+*pkl

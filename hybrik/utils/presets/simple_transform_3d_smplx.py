@@ -14,29 +14,29 @@ from hybrik.models.layers.smplx.body_models import SMPLXLayer
 # from hybrik.models.layers.smplx.joint_names import JOINT_NAMES
 
 
-smplx_layer_neutral = SMPLXLayer(
-    model_path='model_files/smplx/SMPLX_NEUTRAL.npz',
-    num_betas=10,
-    use_pca=False,
-    age='kid',
-    kid_template_path='model_files/smplx_kid_template.npy',
-)
+# smplx_layer_neutral = SMPLXLayer(
+#     model_path='model_files/smplx/SMPLX_NEUTRAL.npz',
+#     num_betas=10,
+#     use_pca=False,
+#     age='kid',
+#     kid_template_path='model_files/smplx_kid_template.npy',
+# )
 
-smplx_layer_female = SMPLXLayer(
-    model_path='model_files/smplx/SMPLX_FEMALE.npz',
-    num_betas=10,
-    use_pca=False,
-    age='kid',
-    kid_template_path='model_files/smplx_kid_template.npy',
-)
+# smplx_layer_female = SMPLXLayer(
+#     model_path='model_files/smplx/SMPLX_FEMALE.npz',
+#     num_betas=10,
+#     use_pca=False,
+#     age='kid',
+#     kid_template_path='model_files/smplx_kid_template.npy',
+# )
 
-smplx_layer_male = SMPLXLayer(
-    model_path='model_files/smplx/SMPLX_MALE.npz',
-    num_betas=10,
-    use_pca=False,
-    age='kid',
-    kid_template_path='model_files/smplx_kid_template.npy',
-)
+# smplx_layer_male = SMPLXLayer(
+#     model_path='model_files/smplx/SMPLX_MALE.npz',
+#     num_betas=10,
+#     use_pca=False,
+#     age='kid',
+#     kid_template_path='model_files/smplx_kid_template.npy',
+# )
 
 
 class SimpleTransform3DSMPLX(object):
